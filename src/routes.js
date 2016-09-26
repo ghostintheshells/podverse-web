@@ -1,5 +1,6 @@
 const
     errors = require('feathers-errors'),
+    request = require('request'),
     {locator} = require('locator.js'),
     {parseFeed, saveParsedFeedToDatabase} = require('tasks/feedParser.js'),
     {isClipMediaRefWithDescription} = require('constants.js');
@@ -126,7 +127,7 @@ function routes () {
     }
   })
 
-  .get('/login-redirect', function (req, res) {
+  .get('/login-redirect', (req, res) => {
     // TODO: is this login + redirection a security vulnerability?
     if (req.query.redirectTo) {
       res.redirect(decodeURIComponent(req.query.redirectTo));
@@ -134,6 +135,17 @@ function routes () {
       res.redirect('/');
     }
   })
+
+  .get('/proxy', (req, res) => {
+    const options = {
+      url: 'http://traffic.libsyn.com/lavenderhour/DTFH_211_Shane_Mauss.mp3',
+      headers: {
+        'Range': 'bytes=20000000-21000000'
+      }
+    }
+
+    req.pipe(request(options)).pipe(res);
+  });
 
 }
 

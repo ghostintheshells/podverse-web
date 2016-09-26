@@ -414,9 +414,9 @@ footer p {
 
 .player-condensed #player-condensed-clip-time {
     display: block !important;
-    font-size: 14px;
+    font-size: 12px;
     clear: both;
-    margin: 10px 0rem -5px 0.5rem;
+    margin: 13px 0rem -5px 0.5rem;
     float: right;
 }
 

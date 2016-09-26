@@ -333,110 +333,145 @@ function setPlayerInfo () {
 
 function createAndAppendAudio () {
 
-  // If audio player elements are already on the page, remove them first.
-  $('.mejs-offscreen').remove();
-  $('.mejs-container').remove();
+  // Fix up prefixing
+  window.AudioContext = window.AudioContext || window.webkitAudioContext;
+  var context = new AudioContext();
 
-  window.audio = document.createElement('audio');
-  audio.setAttribute('src', episodeMediaURL);
-  audio.setAttribute('type', 'audio/mpeg');
-  audio.setAttribute('codecs', 'mp3');
-  audio.preload = "auto";
-  $('#player').append(audio);
+  function loadSound(url) {
+    var xhr = new XMLHttpRequest();
+    xhr.overrideMimeType('application/octet-stream');
+    xhr.open('GET', url, true);
+    xhr.responseType = 'arraybuffer';
 
-  $('audio').mediaelementplayer({
-    // the order of controls you want on the control bar (and other plugins below)
-    features: ['playpause', 'current', 'progress', 'duration', 'volume', 'fasterslower'],
-    alwaysShowHours: true,
-    alwaysShowControls: true
-  });
+    xhr.onload = function() {
+      window.audio = document.createElement('audio');
+      audio.controls = true;
+      var source = document.createElement('source');
+      $(audio).append(source);
 
-  audio.onloadedmetadata = function() {
-    // NOTE: If the lastPlaybackPosition is greater than -1, then the audio player must
-    // have crashed and then restarted, and we should resume from the last saved
-    // playback position. Else begin from the clip start time.
-    if (lastPlaybackPosition > -1) {
-      audio.currentTime = window.lastPlaybackPosition;
-    } else {
-      audio.currentTime = window.startTime || 0;
+      source.src = window.URL.createObjectURL(new Blob([xhr.response], {type: 'audio/mp3'}));
+      source.type = 'audio/mp3';
+      $('#player').append(audio);
+
+      $('audio').mediaelementplayer({
+        // the order of controls you want on the control bar (and other plugins below)
+        features: ['playpause', 'current', 'progress', 'duration', 'volume', 'fasterslower'],
+        alwaysShowHours: true,
+        alwaysShowControls: true
+      });
     }
-  };
-
-
-  // The oncanplaythrough event gets called whenever the currentTime changes.
-  // We only want oncanplaythrough to trigger autoplay ONCE when the file first
-  // loads, and not when the 15 sec time jump buttons are pressed.
-  var autoplayOnceAtBeginning = false;
-  audio.oncanplaythrough = function() {
-    var autoplay = $.cookie('autoplay');
-    if (autoplay === 'On' && autoplayOnceAtBeginning === false) {
-      autoplayOnceAtBeginning = true;
-      audio.play();
-    }
+    xhr.send();
   }
 
-  // When playing a clip, prevent issue where the media file starts playing
-  // from the beginning for a split second before adjusting the startTime.
-  var pauseBeforeFirstPlay = false;
-  audio.onplaying = function() {
-    if (!pauseBeforeFirstPlay) {
-      audio.pause();
-      setTimeout(function() {
-        audio.play();
-        pauseBeforeFirstPlay = true;
-      }, 1);
-    }
-  }
+  loadSound('/proxy');
 
-  audio.ontimeupdate = function() {
+  // // If audio player elements are already on the page, remove them first.
+  // $('.mejs-offscreen').remove();
+  // $('.mejs-container').remove();
+  //
+  // window.audio = document.createElement('audio');
+  // audio.setAttribute('src', episodeMediaURL);
+  // audio.setAttribute('type', 'audio/mpeg');
+  // audio.setAttribute('codecs', 'mp3');
+  // audio.preload = "auto";
+  // $('#player').append(audio);
 
-    // Skip to start time once when the user first hits play on mobile devices
-    if (lastPlaybackPosition === -1) {
-      audio.currentTime = startTime;
-    }
 
-    // Stop the clip once when the end time has been reached
-    if (Math.floor(audio.currentTime) === endTime && endTimeHasBeenReached === false) {
-      endTimeHasBeenReached = true;
-      audio.pause();
-    }
 
-    // TODO: Can this be made more efficient than rewriting the lastPlaybackPosition
-    // whenever time updates?
-    lastPlaybackPosition = audio.currentTime;
-
-  };
-
-  audio.onerror = function(e) {
-    switch (e.target.error.code) {
-      case e.target.error.MEDIA_ERR_ABORTED:
-        console.log('Aborted the video playback.');
-        break;
-      // Chrome will frequently throw a MEDIA_ERR_NETWORK error and crash when seeking
-      // to a position in a clip. I have encountered the issue with native HTML 5 Chrome
-      // components, as well as with 3rd party libraries like JWPlayer and MediaElement.
-      // The only work around for this bug I have found is to listen for the error,
-      // then remove the <audio> element and recreate and append the audio element.
-      // TODO: Is there a better work around or resolution for the Chrome bug?
-      case e.target.error.MEDIA_ERR_NETWORK:
-        console.log('A network error caused the audio download to fail.');
-        if (restartAttempts < 5) {
-          restartAttempts++;
-          $('#player').empty();
-          createAndAppendAudio();
-        }
-        break;
-      case e.target.error.MEDIA_ERR_DECODE:
-        console.log('The audio playback was aborted due to a corruption problem or because the video used features your browser did not support.');
-        break;
-      case e.target.error.MEDIA_ERR_SRC_NOT_SUPPORTED:
-        console.log('The video audio not be loaded, either because the server or network failed or because the format is not supported.');
-        break;
-      default:
-        console.log('An unknown error occurred.');
-        break;
-    }
-  };
+  //
+  // $('audio').mediaelementplayer({
+  //   // the order of controls you want on the control bar (and other plugins below)
+  //   features: ['playpause', 'current', 'progress', 'duration', 'volume', 'fasterslower'],
+  //   alwaysShowHours: true,
+  //   alwaysShowControls: true
+  // });
+  //
+  // audio.onloadedmetadata = function() {
+  //   // NOTE: If the lastPlaybackPosition is greater than -1, then the audio player must
+  //   // have crashed and then restarted, and we should resume from the last saved
+  //   // playback position. Else begin from the clip start time.
+  //   if (lastPlaybackPosition > -1) {
+  //     audio.currentTime = window.lastPlaybackPosition;
+  //   } else {
+  //     audio.currentTime = window.startTime || 0;
+  //   }
+  // };
+  //
+  //
+  // // The oncanplaythrough event gets called whenever the currentTime changes.
+  // // We only want oncanplaythrough to trigger autoplay ONCE when the file first
+  // // loads, and not when the 15 sec time jump buttons are pressed.
+  // var autoplayOnceAtBeginning = false;
+  // audio.oncanplaythrough = function() {
+  //   var autoplay = $.cookie('autoplay');
+  //   if (autoplay === 'On' && autoplayOnceAtBeginning === false) {
+  //     autoplayOnceAtBeginning = true;
+  //     audio.play();
+  //   }
+  // }
+  //
+  // // When playing a clip, prevent issue where the media file starts playing
+  // // from the beginning for a split second before adjusting the startTime.
+  // var pauseBeforeFirstPlay = false;
+  // audio.onplaying = function() {
+  //   if (!pauseBeforeFirstPlay) {
+  //     audio.pause();
+  //     setTimeout(function() {
+  //       audio.play();
+  //       pauseBeforeFirstPlay = true;
+  //     }, 1);
+  //   }
+  // }
+  //
+  // audio.ontimeupdate = function() {
+  //
+  //   // Skip to start time once when the user first hits play on mobile devices
+  //   if (lastPlaybackPosition === -1) {
+  //     audio.currentTime = startTime;
+  //   }
+  //
+  //   // Stop the clip once when the end time has been reached
+  //   if (Math.floor(audio.currentTime) === endTime && endTimeHasBeenReached === false) {
+  //     endTimeHasBeenReached = true;
+  //     audio.pause();
+  //   }
+  //
+  //   // TODO: Can this be made more efficient than rewriting the lastPlaybackPosition
+  //   // whenever time updates?
+  //   lastPlaybackPosition = audio.currentTime;
+  //
+  // };
+  //
+  // audio.onerror = function(e) {
+  //   switch (e.target.error.code) {
+  //     case e.target.error.MEDIA_ERR_ABORTED:
+  //       console.log('Aborted the video playback.');
+  //       break;
+  //     // Chrome will frequently throw a MEDIA_ERR_NETWORK error and crash when seeking
+  //     // to a position in a clip. I have encountered the issue with native HTML 5 Chrome
+  //     // components, as well as with 3rd party libraries like JWPlayer and MediaElement.
+  //     // The only work around for this bug I have found is to listen for the error,
+  //     // then remove the <audio> element and recreate and append the audio element.
+  //     // TODO: Is there a better work around or resolution for the Chrome bug?
+  //     case e.target.error.MEDIA_ERR_NETWORK:
+  //       console.log('A network error caused the audio download to fail.');
+  //       if (restartAttempts < 5) {
+  //         restartAttempts++;
+  //         $('#player').empty();
+  //         createAndAppendAudio();
+  //       }
+  //       break;
+  //     case e.target.error.MEDIA_ERR_DECODE:
+  //       console.log('The audio playback was aborted due to a corruption problem or because the video used features your browser did not support.');
+  //       break;
+  //     case e.target.error.MEDIA_ERR_SRC_NOT_SUPPORTED:
+  //       console.log('The video audio not be loaded, either because the server or network failed or because the format is not supported.');
+  //       break;
+  //     default:
+  //       console.log('An unknown error occurred.');
+  //       break;
+  //   }
+  // };
 
 };
 
