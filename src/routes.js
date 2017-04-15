@@ -8,7 +8,8 @@ const
     {isNonAnonUser} = require('util.js'),
     {generatePlaylistRSSFeed} = require('services/playlist/PlaylistRSSService.js'),
     _ = require('lodash'),
-    validURL = require('valid-url');
+    validURL = require('valid-url'),
+    request = require('request');
 
 function routes () {
   const app = this,
@@ -74,6 +75,21 @@ function routes () {
     .catch(e => {
       console.log(e);
     });
+  })
+
+  .get('/proxy', (req, res) => {
+
+    if (req.query.mediaURL) {
+      const options = {
+        url: req.query.mediaURL,
+        headers : {
+          'Range': 'bytes=600000-800000'
+        }
+      }
+
+      req.pipe(request(options)).pipe(res);
+    }
+
   })
 
   // Clip Detail Page
