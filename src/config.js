@@ -22,6 +22,7 @@ module.exports = {
   jwtSigningKey,
   auth0ClientId: process.env.auth0ClientId,
   auth0Domain: process.env.auth0Domain,
+  auth0CustomDomain: process.env.auth0CustomDomain,
   googleAnalyticsUA: (process.env.NODE_ENV === 'production') ? process.env.GOOGLE_ANALYTICS_UA : '',
   ga: {
     view_id: process.env.GOOGLE_ANALYTICS_VIEW_ID
